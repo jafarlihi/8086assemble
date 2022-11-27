@@ -123,6 +123,32 @@ typedef enum TokenKind {
   XOR,
   BITS,
   NUMBER,
+  HEX,
+  AX,
+  BX,
+  CX,
+  DX,
+  AH,
+  BH,
+  CH,
+  DH,
+  AL,
+  BL,
+  CL,
+  DL,
+  SP,
+  DP,
+  SI,
+  DI,
+  CS,
+  DS,
+  SS,
+  ES,
+  IP,
+  FLAGS,
+  OSBRACE,
+  CSBRACE,
+  COMMA,
 } TokenKind;
 
 char *assemble(void) {
@@ -132,6 +158,8 @@ char *assemble(void) {
     switch(token.kind) {
       case AAA:
         sprintf(result + strlen(result), "%c", 0x37);
+      case MOV:
+        sprintf(result + strlen(result), "mov");
       default:
         continue;
     }
@@ -258,6 +286,32 @@ int main(int argc, char *argv[]) {
   clexRegisterKind("xor", XOR);
   clexRegisterKind("bits", BITS);
   clexRegisterKind("[0-9][0-9]*", NUMBER);
+  clexRegisterKind("0x([A-F0-9])*", HEX);
+  clexRegisterKind("ax", AX);
+  clexRegisterKind("bx", BX);
+  clexRegisterKind("cx", CX);
+  clexRegisterKind("dx", DX);
+  clexRegisterKind("ah", AH);
+  clexRegisterKind("bh", BH);
+  clexRegisterKind("ch", CH);
+  clexRegisterKind("dh", DH);
+  clexRegisterKind("al", AL);
+  clexRegisterKind("bl", BL);
+  clexRegisterKind("cl", CL);
+  clexRegisterKind("dl", DL);
+  clexRegisterKind("sp", SP);
+  clexRegisterKind("dp", DP);
+  clexRegisterKind("si", SI);
+  clexRegisterKind("di", DI);
+  clexRegisterKind("cs", CS);
+  clexRegisterKind("ds", DS);
+  clexRegisterKind("ss", SS);
+  clexRegisterKind("es", ES);
+  clexRegisterKind("ip", IP);
+  clexRegisterKind("flags", FLAGS);
+  clexRegisterKind("\\[", OSBRACE);
+  clexRegisterKind("\\]", CSBRACE);
+  clexRegisterKind(",", COMMA);
 
   char *buffer = 0;
   long length;
