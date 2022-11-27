@@ -122,6 +122,8 @@ typedef enum TokenKind {
   XLATB,
   XOR,
   BITS,
+  BYTE,
+  WORD,
   NUMBER,
   HEX,
   AX,
@@ -285,6 +287,8 @@ int main(int argc, char *argv[]) {
   clexRegisterKind("xlatb", XLATB);
   clexRegisterKind("xor", XOR);
   clexRegisterKind("bits", BITS);
+  clexRegisterKind("byte", BYTE);
+  clexRegisterKind("word", WORD);
   clexRegisterKind("[0-9][0-9]*", NUMBER);
   clexRegisterKind("0x([A-F0-9])*", HEX);
   clexRegisterKind("ax", AX);

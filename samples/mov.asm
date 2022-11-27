@@ -1,11 +1,11 @@
 bits 16
 
 mov ax, [bx]
-mov [ax], bx
+mov [bx], ax
 mov ax, bx
-mov [ax], 0xF0F0
+mov word [bx], 0xF0F0
 mov ax, 0xF0F0
-mov es, [ax]
-mov [ax], es
+mov es, [bx]
+mov [bx], es
 mov ax, es
 mov es, ax
