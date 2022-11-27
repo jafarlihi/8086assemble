@@ -1,4 +1,8 @@
 #include "clex/clex.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <string.h>
 
 typedef enum TokenKind {
   AAA,
@@ -117,7 +121,23 @@ typedef enum TokenKind {
   XCHG,
   XLATB,
   XOR,
+  BITS,
+  NUMBER,
 } TokenKind;
+
+char *assemble(void) {
+  char *result = calloc(10000, sizeof(char));
+  Token token;
+  while ((token = clex()).kind != -1) {
+    switch(token.kind) {
+      case AAA:
+        sprintf(result + strlen(result), "%c", 0x37);
+      default:
+        continue;
+    }
+  }
+  return result;
+}
 
 int main(int argc, char *argv[]) {
   clexRegisterKind("aaa", AAA);
@@ -236,4 +256,30 @@ int main(int argc, char *argv[]) {
   clexRegisterKind("xchg", XCHG);
   clexRegisterKind("xlatb", XLATB);
   clexRegisterKind("xor", XOR);
+  clexRegisterKind("bits", BITS);
+  clexRegisterKind("[0-9][0-9]*", NUMBER);
+
+  char *buffer = 0;
+  long length;
+  FILE *f = fopen(argv[1], "rb");
+
+  if (f) {
+    fseek(f, 0, SEEK_END);
+    length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    buffer = malloc(length);
+    if (buffer)
+      fread(buffer, 1, length, f);
+    fclose (f);
+  }
+
+  if (!buffer) {
+    fprintf(stderr, "Failed to read file\n");
+    exit(1);
+  }
+
+  clexInit(buffer);
+
+  char *result = assemble();
+  printf("%s\n", result);
 }
