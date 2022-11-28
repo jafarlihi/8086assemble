@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <stdint.h>
 
 typedef enum TokenKind {
   AAA,
@@ -139,7 +140,7 @@ typedef enum TokenKind {
   CL,
   DL,
   SP,
-  DP,
+  BP,
   SI,
   DI,
   CS,
@@ -153,6 +154,120 @@ typedef enum TokenKind {
   COMMA,
 } TokenKind;
 
+typedef enum RegisterEncoding {
+  ax = 0b000,
+  cx = 0b001,
+  dx = 0b010,
+  bx = 0b011,
+  sp = 0b100,
+  bp = 0b101,
+  si = 0b011,
+  di = 0b111,
+} RegisterEncoding;
+
+RegisterEncoding get_16bit_register_encoding(TokenKind reg) {
+  switch(reg) {
+    case AX:
+      return ax;
+    case CX:
+      return cx;
+    case DX:
+      return dx;
+    case BX:
+      return bx;
+    case SP:
+      return sp;
+    case BP:
+      return bp;
+    case SI:
+      return si;
+    case DI:
+      return di;
+  }
+}
+
+typedef enum RegisterEncoding8 {
+  al = 0b000,
+  cl = 0b001,
+  dl = 0b010,
+  bl = 0b011,
+  ah = 0b100,
+  ch = 0b101,
+  dh = 0b110,
+  bh = 0b111,
+} RegisterEncoding8;
+
+typedef enum SegmentOverridePrefix {
+  so_es = 0b00,
+  so_cs = 0b01,
+  so_ss = 0b10,
+  so_ds = 0b11,
+} SegmentOverridePrefix;
+
+typedef enum Mod {
+  MOD_REGISTER_INDIRECT = 0b00,
+  MOD_ONE_BYTE_DISPLACEMENT = 0b01,
+  MOD_TWO_BYTE_DISPLACEMENT = 0b10,
+  MOD_REGISTER = 0b11,
+} Mod;
+
+typedef enum RM {
+  bx_si = 0b000,
+  bx_di = 0b001,
+  bp_si = 0b010,
+  bp_di = 0b011,
+  na_si = 0b100,
+  na_di = 0b101,
+  bp_na = 0b110,
+  bx_na = 0b111,
+} RM;
+
+RM get_rm_encoding(TokenKind reg1, TokenKind reg2) {
+  if (reg1 == BX && reg2 == SI)
+    return bx_si;
+  if (reg1 == BX && reg2 == DI)
+    return bx_di;
+  if (reg1 == BP && reg2 == SI)
+    return bp_si;
+  if (reg1 == BP && reg2 == DI)
+    return bp_di;
+  if (reg1 == -1 && reg2 == SI)
+    return na_si;
+  if (reg1 == -1 && reg2 == DI)
+    return na_di;
+  if (reg1 == BP && reg2 == -1)
+    return bp_na;
+  if (reg1 == BX && reg2 == -1) {
+    return bx_na;
+  }
+}
+
+typedef struct __attribute__((__packed__)) ModRM {
+  RM rm : 3;
+  uint8_t mid : 3;
+  Mod mod : 2;
+} ModRM;
+
+ModRM *make_modrm(uint8_t value) {
+  ModRM *result = calloc(1, sizeof(ModRM));
+  result->mod = (value & 0b11000000) >> 6;
+  result->mid = (value & 0b00111000) >> 3;
+  result->rm = value & 0b00000111;
+  return result;
+}
+
+bool is_16bit_gp_register(TokenKind kind) {
+  if (kind == AX || kind == BX || kind == CX || kind == DX)
+    return true;
+  return false;
+}
+
+bool is_16bit_rm_register(TokenKind kind) {
+  if (kind == BX || kind == BP || kind == SI || kind == DI)
+    return true;
+  return false;
+}
+
 char *assemble(void) {
   char *result = calloc(10000, sizeof(char));
   Token token;
@@ -161,7 +276,25 @@ char *assemble(void) {
       case AAA:
         sprintf(result + strlen(result), "%c", 0x37);
       case MOV:
-        sprintf(result + strlen(result), "mov");
+        token = clex();
+        if (is_16bit_gp_register(token.kind)) {
+          TokenKind firstArg = token.kind;
+          if (clex().kind == COMMA) {
+            if (clex().kind == OSBRACE) {
+              token = clex();
+              if (is_16bit_rm_register(token.kind)) {
+                TokenKind secondArg = token.kind;
+                if (clex().kind == CSBRACE) {
+                  ModRM *modrm = make_modrm(0b00000000);
+                  modrm->mod = 0b00;
+                  modrm->mid = get_16bit_register_encoding(firstArg);
+                  modrm->rm = get_rm_encoding(secondArg == BP || secondArg == BX ? secondArg : -1, secondArg == SI || secondArg == DI ? secondArg : -1);
+                  sprintf(result + strlen(result), "%c%c", 0x8B, (*(unsigned char *)modrm));
+                }
+              }
+            }
+          }
+        }
       default:
         continue;
     }
@@ -304,7 +437,7 @@ int main(int argc, char *argv[]) {
   clexRegisterKind("cl", CL);
   clexRegisterKind("dl", DL);
   clexRegisterKind("sp", SP);
-  clexRegisterKind("dp", DP);
+  clexRegisterKind("bp", BP);
   clexRegisterKind("si", SI);
   clexRegisterKind("di", DI);
   clexRegisterKind("cs", CS);
@@ -339,5 +472,5 @@ int main(int argc, char *argv[]) {
   clexInit(buffer);
 
   char *result = assemble();
-  printf("%s\n", result);
+  printf("%s", result);
 }
